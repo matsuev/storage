@@ -1,0 +1,37 @@
+version: "3"
+
+dotenv:
+  - .env
+
+tasks:
+  app:
+    silent: true
+    cmd: go run ./cmd/app
+
+  build:
+    cmd: go build --ldflags="-w -s" -o ./bin/storage-service ./cmd/app
+
+  up:
+    dir: ./deployments/docker
+    cmds:
+      - docker compose up -d
+
+  down:
+    dir: ./deployments/docker
+    cmd: docker compose down
+
+  restart:
+    cmds:
+      - task: down
+      - task: up
+
+  sqlc:
+    cmds:
+      - sqlc generate
+
+  migrate:
+    interactive: true
+    vars:
+      POSTGRES_URI: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@$127.0.0.1:5432/${POSTGRES_DB}?sslmode=disable
+    cmds:
+      - migrate -database={{.POSTGRES_URI}} -source=file://./migrations/storage {{.CLI_ARGS}}
